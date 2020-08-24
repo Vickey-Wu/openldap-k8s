@@ -1,1 +1,0 @@
-# openldap-k8s
