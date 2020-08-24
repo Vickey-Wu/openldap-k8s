@@ -1,0 +1,58 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  namespace: openldap
+  name: ldap
+  labels:
+    app: ldap
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: ldap
+    spec:
+      containers:
+        - name: ldap
+          image: osixia/openldap:1.4.0
+          args: ["--copy-service"]
+          volumeMounts:
+            - name: openldap-data
+              mountPath: /var/lib/ldap
+              subPath: ldap
+            - name: openldap-data
+              mountPath: /etc/ldap/slapd.d
+              subPath: slapd.d
+            - name: openldap-data
+              mountPath: /container/service/slapd/assets/certs
+              subPath: certs
+            - name: secret-volume
+              mountPath: /container/environment/01-custom
+            - name: container-run
+              mountPath: /container/run
+          ports:
+            - containerPort: 389
+              name: openldap
+            - name: ssl-ldap-port
+              containerPort: 636
+          livenessProbe:
+            tcpSocket:
+              port: openldap
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 10
+          readinessProbe:
+            tcpSocket:
+              port: openldap
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 10
+      volumes:
+        - name: openldap-data
+          persistentVolumeClaim:
+            claimName: openldap-data-pvc
+        - name: "secret-volume"
+          secret:
+            secretName: "ldap-secret"
+        - name: container-run
+          emptyDir: {}
